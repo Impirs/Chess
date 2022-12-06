@@ -15,15 +15,19 @@
 		[Range (0, 1)]
 		public float decimalFontSizeMultiplier = 0.75f;
 		public Color lowTimeCol;
+		[SerializeField] AudioSource Timer;
+		bool paused;
 
 		void Start () {
 			secondsRemaining = startSeconds;
+			Timer.Play();
 		}
 
 		void Update () {
 			if (isTurnToMove) {
 				secondsRemaining -= Time.deltaTime;
 				secondsRemaining = Mathf.Max (0, secondsRemaining);
+				if(paused)	Timer.UnPause(); paused = false;
 			}
 			int numMinutes = (int) (secondsRemaining / 60);
 			int numSeconds = (int) (secondsRemaining - numMinutes * 60);
@@ -33,17 +37,19 @@
 				int dec = (int) ((secondsRemaining - numSeconds) * 10);
 				float size = timerUI.fontSize * decimalFontSizeMultiplier;
 				timerUI.text += $"<size={size}>.{dec}</size>";
+				//Timer.Volume = 1;
 			}
 
-			var col = Color.white;
+			var col = Color.black;
 			if ((int) secondsRemaining <= lowTimeThreshold) {
 				col = lowTimeCol;
 			}
 			if (!isTurnToMove) {
 				col = new Color (col.r, col.g, col.b, inactiveAlpha);
+				Timer.Pause();
+				paused = true;
 			}
 			timerUI.color = col;
 		}
-
 	}
 }

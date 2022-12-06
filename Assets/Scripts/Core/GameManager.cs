@@ -26,12 +26,23 @@ namespace Chess.Game {
 		public Clock blackClock;
 		public TMPro.TMP_Text aiDiagnosticsUI;
 		public TMPro.TMP_Text resultUI;
-		public GameObject W_wins;
-		public GameObject B_wins;
+		public GameObject Wins; 
+		public GameObject Lose;
 		public GameObject Clocks;
-		bool isPaused;
+		public GameObject G0;
+		public GameObject G1;
+		public GameObject G2;
+		public GameObject G3;
+		public GameObject G4;
+		bool Igame = false;
+		bool vsAI = true;
+		bool vsPl = false;
+		bool Pl_side;
 		Result gameResult;
-
+		[SerializeField] private AudioSource GG;
+		[SerializeField] private AudioSource BG;
+		[SerializeField] private AudioSource Tap;
+ 
 		Player whitePlayer;
 		Player blackPlayer;
 		Player playerToMove;
@@ -57,7 +68,6 @@ namespace Chess.Game {
 			aiSettings.diagnostics = new Search.SearchDiagnostics ();
 
 			NewGame (whitePlayerType, blackPlayerType);
-
 		}
 
 		void Update () {
@@ -87,19 +97,45 @@ namespace Chess.Game {
 			NotifyPlayerToMove ();
 		}
 
+		void PLay_Mode(GameObject a0, GameObject a1, 
+					   GameObject a2, GameObject a3){
+			a0.SetActive(true) ;
+			a1.SetActive(false);
+			a2.SetActive(false); 
+			a3.SetActive(false);
+		}
+
+		void Click(){
+			Tap.Play();
+		}
+
 		public void NewGame (bool humanPlaysWhite) {
 			boardUI.SetPerspective (humanPlaysWhite);
+			if(humanPlaysWhite){
+				PLay_Mode(G2, G1, G3, G4);
+			} else PLay_Mode(G3, G1, G2, G4);; 
+			Pl_side = humanPlaysWhite;
+			vsAI = true;
+			Click();
 			NewGame ((humanPlaysWhite) ? PlayerType.Human : PlayerType.AI, (humanPlaysWhite) ? PlayerType.AI : PlayerType.Human);
 		}
 
 		public void NewComputerVersusComputerGame () {
+			Igame = true;
+			vsAI = false;
+			PLay_Mode(G4, G1, G2, G3);
 			boardUI.SetPerspective (true);
 			NewGame (PlayerType.AI, PlayerType.AI);
+			Click();
 		}
 
 		public void NewPlayerVersusPlayerGame(){
+			PLay_Mode(G1, G2, G3, G4);
+			vsPl = true;
+			vsAI = false;
 			boardUI.SetPerspective(true);
 			NewGame(PlayerType.Human, PlayerType.Human);
+			Click();
 		}
 
 		void NewGame (PlayerType whitePlayerType, PlayerType blackPlayerType) {
@@ -122,6 +158,9 @@ namespace Chess.Game {
 			PrintGameResult (gameResult);
 
 			NotifyPlayerToMove ();
+
+			Lose.SetActive(false);
+			Wins.SetActive(false);
 		}
 
 		void LogAIDiagnostics () {
@@ -152,21 +191,16 @@ namespace Chess.Game {
 		}
 
 		public void Speed_mode(){
-			Clocks.SetActive(true);
-			useClocks = true;
-		}
-		public void QuitGame () {
-			Application.Quit ();
-		}
-
-		private void Pause(){
-			if(!isPaused){
-				isPaused = true;
-				Time.timeScale = 0;
+			if (useClocks == false){
+				G0.SetActive(true);
+				Clocks.SetActive(true);
+				useClocks = true;
 			} else {
-				isPaused = false;
-				Time.timeScale = 1;
+				G0.SetActive(false);
+				Clocks.SetActive(false);
+				useClocks = false;
 			}
+			Click();
 		}
 
 		void NotifyPlayerToMove () {
@@ -188,12 +222,30 @@ namespace Chess.Game {
 
 			if (result == Result.Playing) {
 				resultUI.text = "";
-			} else if (result == Result.WhiteIsMated) {
-				B_wins.SetActive(true);
-			} else if (result == Result.BlackIsMated){
-				W_wins.SetActive(true);
+			} else if((result == Result.WhiteIsMated && vsAI && Pl_side) ||
+					  (result == Result.BlackIsMated && vsAI && !Pl_side)){
+				Lose.SetActive(true);
+				BG.Play();
+			} else if((result == Result.BlackIsMated && vsAI && Pl_side) ||
+					  (result == Result.WhiteIsMated && vsAI && !Pl_side)){
+				Wins.SetActive(true);
+				GG.Play();
+			} else if (result == Result.BlackIsMated && Igame){
+				resultUI.text = "White Wins";
+				Igame = false;
+			} else if (result == Result.WhiteIsMated && Igame){
+				resultUI.text = "Black Wins";
+				Igame = false;
+			} else if (result == Result.WhiteIsMated && vsPl){
+				Lose.SetActive(true);
+				BG.Play();
+				vsPl = false;
+			} else if (result == Result.BlackIsMated && vsPl){
+				Wins.SetActive(true);
+				GG.Play();
+				vsPl = false;
 			} else if (result == Result.FiftyMoveRule) {
-				resultUI.text = "Draw";
+			 	resultUI.text = "Draw";
 				resultUI.text += subtitleSettings + "\n(50 move rule)";
 			} else if (result == Result.Repetition) {
 				resultUI.text = "Draw";
